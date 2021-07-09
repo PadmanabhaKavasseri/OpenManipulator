@@ -1,0 +1,8 @@
+prefix=/root/catkin_ws/src/open_manipulator_pick_and_place/build/devel
+
+Name: open_manipulator_pick_and_place
+Description: Description of open_manipulator_pick_and_place
+Version: 1.0.0
+Cflags: -I/root/catkin_ws/src/open_manipulator_pick_and_place/include
+Libs: -L${prefix}/lib 
+Requires: roscpp sensor_msgs open_manipulator_msgs ar_track_alvar_msgs

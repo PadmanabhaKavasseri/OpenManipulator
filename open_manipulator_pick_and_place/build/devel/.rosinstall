@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /root/catkin_ws/src/open_manipulator_pick_and_place/build/devel/setup.sh
