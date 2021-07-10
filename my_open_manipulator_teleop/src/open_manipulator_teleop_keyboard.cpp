@@ -4,7 +4,7 @@
 * Licensed under the Apache License, Version 2.0 (the "License");
 * you may not use this file except in compliance with the License.
 * You may obtain a copy of the License at
-*
+*jj
 *     http://www.apache.org/licenses/LICENSE-2.0
 *
 * Unless required by applicable law or agreed to in writing, software
@@ -18,10 +18,9 @@
 
 #include "open_manipulator_teleop/open_manipulator_teleop_keyboard.h"
 #include <iostream>
+#include <unistd.h>
 
-OpenManipulatorTeleop::OpenManipulatorTeleop()
-    :node_handle_(""),
-     priv_node_handle_("~")
+OpenManipulatorTeleop::OpenManipulatorTeleop() :node_handle_(""), priv_node_handle_("~")
 {
   present_joint_angle_.resize(NUM_OF_JOINT);
   present_kinematic_position_.resize(3);
@@ -419,7 +418,52 @@ int main(int argc, char **argv)
   ROS_INFO("OpenManipulator teleoperation using keyboard start");
   openManipulatorTeleop.disableWaitingForEnter();
 
+
+
   ros::spinOnce();
+
+
+
+  //initialize arm position
+  printf("input : 2 \thome pose\n");
+  std::vector<std::string> joint_name;
+  std::vector<double> joint_angle;
+  double path_time = 2.0;
+
+  joint_name.push_back("joint1"); joint_angle.push_back(0.0);
+  joint_name.push_back("joint2"); joint_angle.push_back(-1.05);
+  joint_name.push_back("joint3"); joint_angle.push_back(0.35);
+  joint_name.push_back("joint4"); joint_angle.push_back(0.70);
+  openManipulatorTeleop.setJointSpacePath(joint_name, joint_angle, path_time);
+
+  while(ros::ok()){
+    //might want to add quit code into this from older code module
+
+    ros::spinOnce();
+
+    printf("---------------------------\n"); 
+    printf("Present Joint Angle J1: %.3lf J2: %.3lf J3: %.3lf J4: %.3lf\n",
+           openManipulatorTeleop.getPresentJointAngle().at(0),
+           openManipulatorTeleop.getPresentJointAngle().at(1),
+           openManipulatorTeleop.getPresentJointAngle().at(2),
+           openManipulatorTeleop.getPresentJointAngle().at(3));
+    printf("Present Kinematics Position X: %.3lf Y: %.3lf Z: %.3lf\n",
+           openManipulatorTeleop.getPresentKinematicsPose().at(0),
+           openManipulatorTeleop.getPresentKinematicsPose().at(1),
+           openManipulatorTeleop.getPresentKinematicsPose().at(2));
+    printf("Present AR Marker Coordinates X: %.3lf Y: %.3lf Z: %.3lf\n",
+            openManipulatorTeleop.getPresentArMarkerCoordinates().at(0),
+            openManipulatorTeleop.getPresentArMarkerCoordinates().at(1), 
+            openManipulatorTeleop.getPresentArMarkerCoordinates().at(2));
+    printf("---------------------------\n");
+
+    sleep(1);
+  
+  }
+
+
+
+/*  ros::spinOnce();
   openManipulatorTeleop.printText();
 
   char ch;
@@ -429,7 +473,7 @@ int main(int argc, char **argv)
     openManipulatorTeleop.printText();
     ros::spinOnce();
     openManipulatorTeleop.setGoal(ch);
-  }
+  }*/
 
   printf("input : q \tTeleop. is finished\n");
   openManipulatorTeleop.restoreTerminalSettings();
