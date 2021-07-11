@@ -86,7 +86,7 @@ void OpenManipulatorTeleop::arPoseMarkerCallback(const geometry_msgs::PoseStampe
   temp_position.push_back(msg->pose.position.x);
   temp_position.push_back(msg->pose.position.y);
   temp_position.push_back(msg->pose.position.z);
-  std::cout << "DEBUG: " <<  temp_position[0] << " " << temp_position.size() << std::endl;
+  // std::cout << "DEBUG: " <<  temp_position[0] << " " << temp_position.size() << std::endl;
   present_ar_marker_coordinates_ = temp_position;
 }
 
@@ -457,7 +457,7 @@ int main(int argc, char **argv)
             openManipulatorTeleop.getPresentArMarkerCoordinates().at(2));
     printf("---------------------------\n");
 
-    sleep(1);
+    usleep(10000);
   
   }
 
