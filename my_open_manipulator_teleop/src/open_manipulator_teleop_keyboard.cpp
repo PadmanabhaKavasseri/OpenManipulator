@@ -82,12 +82,61 @@ void OpenManipulatorTeleop::kinematicsPoseCallback(const open_manipulator_msgs::
 
 void OpenManipulatorTeleop::arPoseMarkerCallback(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
-  std::vector<double> temp_position;
-  temp_position.push_back(msg->pose.position.x);
-  temp_position.push_back(msg->pose.position.y);
-  temp_position.push_back(msg->pose.position.z);
-  // std::cout << "DEBUG: " <<  temp_position[0] << " " << temp_position.size() << std::endl;
-  present_ar_marker_coordinates_ = temp_position;
+  //we are setting ->>>>      present_ar_marker_coordinates_
+  auto x = msg->pose.position.x;
+  auto y = msg->pose.position.y;
+  auto z = msg->pose.position.z;
+
+ 
+  std::cout << "DEBUG: " <<  x << " " <<  std::endl;
+
+
+  //if y and z are not in a certain range then ignore them
+
+  //set x regardless cuz i cant figure it out
+  present_ar_marker_coordinates_[0] = x;
+  //y position
+  /*
+  //decreasing
+    left = -0.07
+    middle = -0.043
+    right = -0.021
+    lets set the range as [0 to -0.1]
+  */
+  //set if only in a certain range
+  if(y<=0 && y>=-0.1){
+    present_ar_marker_coordinates_[1] = y;
+  }
+  // else{
+  //   present_ar_marker_coordinates_[1] = 1.1111;
+  // }
+
+  //z position
+  /*
+    close = 0.3;
+    far away = 0.7
+
+    so lets set the range as [0,1]
+  */
+  if(z<=1 && z>=0){
+    present_ar_marker_coordinates_[2] = z;
+
+    if(z<0.5){
+      std::cout << " close " << std::endl;
+    }
+    else{
+      std::cout << " far " << std::endl;
+    }
+
+  }
+  // else{
+  //   present_ar_marker_coordinates_[2] = 1.1111;
+  // }
+
+  // present_ar_marker_coordinates_[2] = z;
+
+  //potential warning... the range could change once the arm moves...
+
 }
 
 std::vector<double> OpenManipulatorTeleop::getPresentJointAngle()
@@ -422,7 +471,7 @@ int main(int argc, char **argv)
 
   ros::spinOnce();
 
-
+  std::vector<double> goalPose;  goalPose.resize(3, 0.0);
 
   //initialize arm position
   printf("input : 2 \thome pose\n");
@@ -436,7 +485,16 @@ int main(int argc, char **argv)
   joint_name.push_back("joint4"); joint_angle.push_back(0.70);
   openManipulatorTeleop.setJointSpacePath(joint_name, joint_angle, path_time);
 
+
+  // goalPose.at(0) = DELTA;
+  // openManipulatorTeleop.setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+
   while(ros::ok()){
+
+    //probably not the best run time... and resource management. Fix later.
+    goalPose.resize(3, 0.0);
+
+
     //might want to add quit code into this from older code module
 
     ros::spinOnce();
@@ -457,6 +515,50 @@ int main(int argc, char **argv)
             openManipulatorTeleop.getPresentArMarkerCoordinates().at(2));
     printf("---------------------------\n");
 
+
+
+    //this code should get turned into another function
+
+
+    // z->AR pose is the x->OpenManip
+    // if(openManipulatorTeleop.getPresentArMarkerCoordinates().at(2) > 0.37){
+    //   std::cout << "Far -> Moving in +Z direction " << std::endl;
+
+    //   // ar pose z is x coordinate /direction for open manip
+    //   goalPose.at(0) = DELTA;
+    //   openManipulatorTeleop.setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+    // }
+    // else if(openManipulatorTeleop.getPresentArMarkerCoordinates().at(2) < 0.3){
+    //   std::cout << "Too Close -> Moving in -Z direction " << std::endl;
+    //   goalPose.at(0) = -DELTA;
+    //   openManipulatorTeleop.setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+
+    // }
+    // else{
+    //   std::cout << "Object is a safe distance away" << std::endl;
+    // }
+
+
+    // //this is the same 
+    // //y position
+    // /*
+    //   left = -0.07
+    //   middle = -0.043
+    //   right = -0.021
+    //   lets set the range as [0 to -0.1]
+    // */
+
+    // if(openManipulatorTeleop.getPresentArMarkerCoordinates().at(1) < -0.037){
+    //   std::cout << "Object is on left side" << std::endl;
+    // }
+    // else if(openManipulatorTeleop.getPresentArMarkerCoordinates().at(1) > -0.047){
+    //   std::cout << "Object is on right side" << std::endl;
+    // }
+    // else if(openManipulatorTeleop.getPresentArMarkerCoordinates().at(1) > -0.047){
+    //   std::cout << "Object is on right side" << std::endl;
+    // }
+    
+    
     usleep(10000);
   
   }
@@ -480,3 +582,33 @@ int main(int argc, char **argv)
 
   return 0;
 }
+
+
+//create an absolute value box aorund and throw out any values that don't fit insude the box
+//Create hard code edges for the xyz via trial and error\
+//Take a moving average of the xyz values. 
+/*
+MOVING AVERAGE
+
+in order to calculate a moving average we need an array of previous values.
+We will need one array for each x,y,&z value.
+
+for 
+
+if moving average is increasing
+
+
+//lets just mess with the z.
+
+if moving average is increasing,, we need to increase our z axis till we can an AR marker pose of less than 0.35
+
+do we need the moving average.... if ar pose for z is greater than 0.3, increase z position .
+
+
+while(arpose->z >= 0.3){
+  cout << still to far need to move up...
+  openmaniplulator z coordinate += 0.1
+}
+
+
+*/
