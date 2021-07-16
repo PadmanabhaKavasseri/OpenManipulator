@@ -68,7 +68,8 @@ class OpenManipulatorTeleop
   bool setToolControl(std::vector<double> joint_angle);
 
   void printText();
-  void kbrdController();
+  // void kbrdController();
+  void consoleInput();
   void setGoal(char ch);
 
   void restoreTerminalSettings(void);

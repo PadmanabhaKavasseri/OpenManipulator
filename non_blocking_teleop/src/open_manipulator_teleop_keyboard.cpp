@@ -1,4 +1,6 @@
 ﻿#include <thread>
+#include <mutex>
+#include <condition_variable>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -28,7 +30,10 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-std::atomic<bool> done(false); //could make this a memebr variable
+std::atomic<bool> done(false);
+std::atomic<bool> auto_pilot(false);
+std::condition_variable cv;
+std::mutex m;
 
 OpenManipulatorTeleop::OpenManipulatorTeleop() :node_handle_(""), priv_node_handle_("~"){
   present_joint_angle_.resize(NUM_OF_JOINT);
@@ -125,6 +130,7 @@ void OpenManipulatorTeleop::find_min(rs2_frame* frame, int max_height, int max_w
   int x,y = 0;
   float min_dist = 10000;
   float curr_dist = 0.0;
+  float center_dist = rs2_depth_frame_get_distance(frame, max_width/2, max_height/2, &e_);
   std::vector<double> goalPose;  goalPose.resize(3, 0.0);
 
   // rs2_depth_frame_get_distance(frame, width / 2, height / 2, &e);
@@ -186,7 +192,7 @@ void OpenManipulatorTeleop::find_min(rs2_frame* frame, int max_height, int max_w
     goalPose.at(0) = DELTA;
     setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
   }
-  else if(min_dist < 0.158){
+  else if(min_dist < 0.158 || center_dist < 0.158 ){
     //move back
     std::cout << "moving backward" << std::endl;
     goalPose.resize(3, 0.0);
@@ -243,7 +249,14 @@ void OpenManipulatorTeleop::find_min(rs2_frame* frame, int max_height, int max_w
 void OpenManipulatorTeleop::getFrames(){
 
   while (!done)
-  {
+  {   
+      while(!auto_pilot){ 
+          //we need to pause autopilot
+          std::unique_lock<std::mutex> lk(m);
+          cv.wait(lk);
+          lk.unlock();
+      }
+
       // This call waits until a new composite_frame is available
       // composite_frame holds a set of frames. It is used to prevent frame drops
       // The returned object should be released with rs2_release_frame(...)
@@ -357,8 +370,7 @@ bool OpenManipulatorTeleop::setJointSpacePath(std::vector<std::string> joint_nam
   return false;
 }
 
-bool OpenManipulatorTeleop::setToolControl(std::vector<double> joint_angle)
-{
+bool OpenManipulatorTeleop::setToolControl(std::vector<double> joint_angle){
   open_manipulator_msgs::SetJointPosition srv;
   srv.request.joint_position.joint_name.push_back(priv_node_handle_.param<std::string>("end_effector_name", "gripper"));
   srv.request.joint_position.position = joint_angle;
@@ -615,7 +627,12 @@ void OpenManipulatorTeleop::disableWaitingForEnter(){
   tcsetattr(0, TCSANOW, &newt);  /* Apply settings */
 }
 
-void OpenManipulatorTeleop::kbrdController(){
+
+// void OpenManipulatorTeleop::kbrdController(){
+
+// }
+
+void OpenManipulatorTeleop::consoleInput(){
   char ch;
   while (ros::ok() && !done) //the getchar is the blocking line   original -> while (ros::ok() && (ch = std::getchar()) != 'q')
   {
@@ -624,13 +641,32 @@ void OpenManipulatorTeleop::kbrdController(){
 
     if(ch == 'q'){
       std::cout << "Quitting!" << std::endl;
+      std::lock_guard<std::mutex> lk(m);
+      auto_pilot = true;
+      cv.notify_all();
       done = true;      
-    }  
+    }
+    if(ch == 'k'){
+      std::lock_guard<std::mutex> lk(m);
+      auto_pilot = false;
+
+      //stop automatic
+      //keyboard
+
+    }
+    if(ch == 'a'){
+      std::lock_guard<std::mutex> lk(m);
+      auto_pilot = true;
+      cv.notify_all();
+      //start automatic
+      //stop ptrinttext
+    }
     // ros::spinOnce();
     // openManipulatorTeleop.printText();
     ros::spinOnce();
     setGoal(ch); 
   }
+  std::cout << "Peace out" << std::endl;
 }
 
 int main(int argc, char **argv){
@@ -642,18 +678,19 @@ int main(int argc, char **argv){
   ROS_INFO("OpenManipulator teleoperation using keyboard start");
   openManipulatorTeleop.disableWaitingForEnter();
 
-  std::thread streamFrames(&OpenManipulatorTeleop::getFrames,&openManipulatorTeleop);
+  std::thread t_auto_pilot(&OpenManipulatorTeleop::getFrames,&openManipulatorTeleop);
 
-  // std::thread printStream(&OpenManipulatorTeleop::printText,&openManipulatorTeleop);
+  // std::thread manual()
 
-  std::thread getInput(&OpenManipulatorTeleop::kbrdController,&openManipulatorTeleop);
+  // std::thread printStream(&OpenManipulatorTeleop::printText,&openManipulatorTeleop); maybe this should only print when the autopilot is off...
+
+  std::thread kbrdInput(&OpenManipulatorTeleop::consoleInput,&openManipulatorTeleop);
   
-  streamFrames.join();
-  getInput.join();
+  t_auto_pilot.join();
+  kbrdInput.join();
 
   printf("input : q \tTeleop. is finished\n");
   openManipulatorTeleop.restoreTerminalSettings();
 
   return 0;
 }
-//test comment
