@@ -75,7 +75,8 @@ class OpenManipulatorTeleop
   void restoreTerminalSettings(void);
   void disableWaitingForEnter(void);
 
-  void find_min(rs2_frame* frame, int max_height, int max_width);
+  bool find_min(rs2_frame* frame, int max_height, int max_width);
+  void acquireObject();
 
   void initCamera();
   void getFrames();

@@ -126,16 +126,12 @@ void OpenManipulatorTeleop::initCamera(){
   }
 }
 
-void OpenManipulatorTeleop::find_min(rs2_frame* frame, int max_height, int max_width){
+bool OpenManipulatorTeleop::find_min(rs2_frame* frame, int max_height, int max_width){
   int x,y = 0;
   float min_dist = 10000;
   float curr_dist = 0.0;
   float center_dist = rs2_depth_frame_get_distance(frame, max_width/2, max_height/2, &e_);
   std::vector<double> goalPose;  goalPose.resize(3, 0.0);
-
-  // rs2_depth_frame_get_distance(frame, width / 2, height / 2, &e);
-
-  //could use functional programming here to speed things up
 
   for(int h = 0; h < max_height; h++){
       for(int w = 0; w < max_width; w++){
@@ -154,96 +150,114 @@ void OpenManipulatorTeleop::find_min(rs2_frame* frame, int max_height, int max_w
       }
   }
 
-  /*
-  WIDTH / LEFT||RIGHT
-  if width > 384 it is on the west
-  if width < 256 it is on the east
-  else it is in the middle
+  bool dist_ok = true;
 
-  WIDTH / UP||DOWN
-  if height < 192 -> is on top
-  if height > 288 it is on bottom
-  else it is in the middle
-  
-  printf("input : z \tincrease(++) z axis in task space\n");
-    goalPose.at(2) = DELTA;
-    setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
-  }
-  else if(ch == 'x' || ch == 'X')
-  {
-    printf("input : x \tdecrease(--) z axis in task space\n");
-    goalPose.at(2) = -DELTA;
-    setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
-
-
-
-
-  */
-  // if(min_dist > 0.4){
-  //   std::cout << "moving forward" << std::endl;
-  //   goalPose.resize(3, 0.0);
-  //   goalPose.at(0) = DELTA;
-  //   setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
-  // }
-  if(min_dist < 0.4 && min_dist > 0.2){
-    //move forward
-    std::cout << "moving forward" << std::endl;
+  if(min_dist > 0.16 && min_dist < 0.4){
     goalPose.resize(3, 0.0);
     goalPose.at(0) = DELTA;
     setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+
+    //close gripper
+    std::vector<double> joint_angle;
+    joint_angle.push_back(-0.01);
+    setToolControl(joint_angle);
   }
-  else if(min_dist < 0.158 || center_dist < 0.158 ){
-    //move back
-    std::cout << "moving backward" << std::endl;
-    goalPose.resize(3, 0.0);
-    goalPose.at(0) = -DELTA;
-    setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+  else if(min_dist <= 0.158){ //|| center_dist <= 0.158
+    //close grabber
+    std::vector<double> joint_angle;
+    joint_angle.push_back(0.01);
+    setToolControl(joint_angle);
+
+    if(min_dist <= 0.155){
+      return true;
+    }
   }
   else{
-    std::cout << "not moving" << std::endl;
+    dist_ok = false;
   }
 
 
-  if(x >=384) {
-      printf("\n<- LEFT <-\t");
-      //-delta y axes
-      goalPose.resize(3, 0.0);
-      goalPose.at(1) = -DELTA;
-      setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
-  }
-  else if(x <= 256) {
-      printf("\n-> RIGHT ->\t");
-      goalPose.resize(3, 0.0);
-      goalPose.at(1) = DELTA;
-      setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
-      //+deltta y axis
+  if(dist_ok){
+    if(x >=384) {
+        printf("\n<- LEFT <-\t"); //-delta y axes
+        
+        goalPose.resize(3, 0.0);
+        goalPose.at(1) = -DELTA;
+        setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+    }
+    else if(x <= 256) {
+        printf("\n-> RIGHT ->\t"); //+deltta y axis
+
+        goalPose.resize(3, 0.0);
+        goalPose.at(1) = DELTA;
+        setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+        
+    }
+    else{
+        printf("\n| CENTER |\t");
+    }
+
+    if (y <= 192){
+        printf("\t + UP +\n");
+        // printf("input : z \tincrease(++) z axis in task space\n");
+        //we want to move the arm up increase in z direction
+
+        goalPose.resize(3, 0.0);
+        goalPose.at(2) = DELTA;
+        setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+
+    }
+    else if (y >=288){
+        printf("\t - DOWN - \n");
+        // printf("input : x \tdecrease(--) z axis in task space\n");
+        //we want to move the arm down decrease in z direction
+
+        goalPose.resize(3, 0.0);
+        goalPose.at(2) = -DELTA;
+        setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+        
+    }
+    else{
+        printf("\t| CENTER |\n");
+    }
   }
   else{
-      printf("\n| CENTER |\t");
+    std::cout << "Object too far or No object in focus" << std::endl;
   }
 
-  if (y <= 192){
-      printf("\t + UP +\n");
-      printf("input : z \tincrease(++) z axis in task space\n");
-      //we want to move the arm up increase in z direction
-      goalPose.resize(3, 0.0);
-      goalPose.at(2) = DELTA;
-      setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
-
-  }
-  else if (y >=288){
-      printf("\t - DOWN - \n");
-      printf("input : x \tdecrease(--) z axis in task space\n");
-      goalPose.resize(3, 0.0);
-      goalPose.at(2) = -DELTA;
-      setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
-      //we want to move the arm down decrease in z direction
-  }
-  else{
-      printf("\t| CENTER |\n");
-
-  }
   printf("\n+++Min Distance Coordinates   width: %i,   height:%i,   Distance: %f\n", x,y,min_dist);
+
+  return false;
+}
+
+
+void OpenManipulatorTeleop::acquireObject(){
+    std::vector<double> goalPose;  goalPose.resize(3, 0.0);
+    std::vector<double> joint_angle;
+    std::cout << "in acquire" << std::endl;
+
+    std::lock_guard<std::mutex> lk(m);
+    auto_pilot = false;
+    // cv.notify_all();
+
+    //move forward a couple inches
+    goalPose.resize(3, 0.0);
+    goalPose.at(0) = DELTA;
+
+    for(int i = 0; i<100; i++){
+      setTaskSpacePathFromPresentPositionOnly(goalPose, PATH_TIME);
+      usleep(10000);
+    }
+
+    
+    //grab object
+    joint_angle.clear();
+    joint_angle.push_back(0.00);
+    setToolControl(joint_angle);
+
+    ros::spinOnce();
+    setGoal('2');
+      
 }
 
 void OpenManipulatorTeleop::getFrames(){
@@ -252,6 +266,7 @@ void OpenManipulatorTeleop::getFrames(){
   {   
       while(!auto_pilot){ 
           //we need to pause autopilot
+          std::cout << "in autopilot check" << std::endl;
           std::unique_lock<std::mutex> lk(m);
           cv.wait(lk);
           lk.unlock();
@@ -289,7 +304,9 @@ void OpenManipulatorTeleop::getFrames(){
           // printf("\nHeight: %i, Width: %i\n",height,width);//height = 480 width =640  in my mind height should be the y 
           check_error(e_);
 
-          find_min(frame,height,width);
+          if(find_min(frame,height,width)){
+            acquireObject();
+          }
 
           //only run this once
           // break;

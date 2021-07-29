@@ -13,7 +13,7 @@ Finally run `ifconfig` and set the `ROS_MASTER_URI`
 
 
 ```bash 
-export ROS_MASTER_URI='http://192.168.0.107:11311'  
+export ROS_MASTER_URI='http://192.168.0.150:11311'  
 export ROS_MASTER_URI='http:// :11311'  
 ```
 ###### _TODO: Write a program to automatically set this_
@@ -46,6 +46,11 @@ sudo make install
 
 then type the execuatble and it should work.
 
+#### - Object detection
+On windows side: files are located in C:\dev\rs_object_detection
+On rb5 side: files are lcated in /home/rs_object_detection
+
+adb push rs_object_detection /home/.
 
 ______________________________________________________________________________ 	
 #### - KeyboardTeleop  
@@ -88,6 +93,11 @@ cmake .
 make
 
 
+adb push open_manipulator_teleop_keyboard.cpp /root/catkin_ws/src/non_blocking_teleop/src/.
+
+adb push non_blocking_teleop /root/catkin_ws/src/.
+
+
 roslaunch non_blocking_teleop non_blocking_teleop.launch
 
 ______________________________________________________________________________
@@ -102,10 +112,8 @@ Need to run the OpenManipulator controller [-WikiLink-](https://emanual.robotis.
 - `cd /root/catkin_ws/src/Grasp-pose-detection-master/build && ./tflite-demo-app-ros1`
 - `roslaunch open_manipulator_pick_and_place open_manipulator_pick_and_place.launch`  
   
- 
 
-
-
+adb pull /root/catkin_ws/src/Grasp-pose-detection-master .
 
 
 
