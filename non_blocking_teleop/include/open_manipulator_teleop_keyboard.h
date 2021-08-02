@@ -7,7 +7,7 @@
 #include <termios.h>
 #include "open_manipulator_msgs/SetJointPosition.h"
 #include "open_manipulator_msgs/SetKinematicsPose.h"
-
+#include "std_msgs/String.h"
 
 
 #define NUM_OF_JOINT 4
@@ -29,6 +29,7 @@ class OpenManipulatorTeleop
 
   ros::Subscriber joint_states_sub_;
   ros::Subscriber kinematics_pose_sub_;
+  ros::Subscriber center_coordinates_sub_;
 
   std::vector<double> present_joint_angle_;
   std::vector<double> present_kinematic_position_;
@@ -57,6 +58,7 @@ class OpenManipulatorTeleop
 
   void jointStatesCallback(const sensor_msgs::JointState::ConstPtr &msg);
   void kinematicsPoseCallback(const open_manipulator_msgs::KinematicsPose::ConstPtr &msg);
+  void boundingBoxCenterCallback(const std_msgs::String::ConstPtr &msg);
 
   std::vector<double> getPresentJointAngle();
   std::vector<double> getPresentKinematicsPose();
@@ -82,10 +84,10 @@ class OpenManipulatorTeleop
   void getFrames();
   void dltCamera();
 
-
-
 };
 
 #endif //OPEN_MANIPULATOR_TELEOP_H
+
+// adb push /home/shoni/Documents/openmanip/non_blocking_teleop/include/open_manipulator_teleop_keyboard.h /root/catkin_ws/src/non_blocking_teleop/include/.
 
 

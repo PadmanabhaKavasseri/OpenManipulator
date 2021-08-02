@@ -9,6 +9,8 @@
 #include <limits.h>
 
 
+
+
 #include </usr/local/include/librealsense2/rs.h>
 #include </usr/local/include/librealsense2/h/rs_pipeline.h>
 #include </usr/local/include/librealsense2/h/rs_option.h>
@@ -41,7 +43,7 @@ OpenManipulatorTeleop::OpenManipulatorTeleop() :node_handle_(""), priv_node_hand
 
   initClient();
   initSubscriber();
-  initCamera();
+  // initCamera();
 
   //need to set memeber variables here 
   //cam_info first and second accordingly 
@@ -77,6 +79,8 @@ void OpenManipulatorTeleop::initClient(){
 void OpenManipulatorTeleop::initSubscriber(){
   joint_states_sub_ = node_handle_.subscribe("joint_states", 10, &OpenManipulatorTeleop::jointStatesCallback, this);
   kinematics_pose_sub_ = node_handle_.subscribe("kinematics_pose", 10, &OpenManipulatorTeleop::kinematicsPoseCallback, this);
+  center_coordinates_sub_ = node_handle_.subscribe("/bbox_center", 10, &OpenManipulatorTeleop::boundingBoxCenterCallback, this);
+  std::cout << "got here" << std::endl;
 }
 
 void OpenManipulatorTeleop::initCamera(){
@@ -351,6 +355,11 @@ void OpenManipulatorTeleop::kinematicsPoseCallback(const open_manipulator_msgs::
   temp_position.push_back(msg->pose.position.y);
   temp_position.push_back(msg->pose.position.z);
   present_kinematic_position_ = temp_position;
+}
+
+void OpenManipulatorTeleop::boundingBoxCenterCallback(const std_msgs::String::ConstPtr &msg){
+  ROS_INFO(msg->data.c_str());
+  // std::cout << "THE MESSAGE IS: " << msg << std::endl;
 }
 
 std::vector<double> OpenManipulatorTeleop::getPresentJointAngle(){
@@ -690,24 +699,34 @@ int main(int argc, char **argv){
 
   ros::init(argc, argv, "open_manipulator_teleop");
 
+  
+
+  // 
+
   OpenManipulatorTeleop openManipulatorTeleop;
+  
+
 
   ROS_INFO("OpenManipulator teleoperation using keyboard start");
-  openManipulatorTeleop.disableWaitingForEnter();
+  // openManipulatorTeleop.disableWaitingForEnter();
 
-  std::thread t_auto_pilot(&OpenManipulatorTeleop::getFrames,&openManipulatorTeleop);
+  // std::thread t_auto_pilot(&OpenManipulatorTeleop::getFrames,&openManipulatorTeleop);
 
   // std::thread manual()
 
   // std::thread printStream(&OpenManipulatorTeleop::printText,&openManipulatorTeleop); maybe this should only print when the autopilot is off...
 
-  std::thread kbrdInput(&OpenManipulatorTeleop::consoleInput,&openManipulatorTeleop);
+  // std::thread kbrdInput(&OpenManipulatorTeleop::consoleInput,&openManipulatorTeleop);
   
-  t_auto_pilot.join();
-  kbrdInput.join();
+  // t_auto_pilot.join();
+  // kbrdInput.join();
+  ros::spin();
 
   printf("input : q \tTeleop. is finished\n");
   openManipulatorTeleop.restoreTerminalSettings();
 
   return 0;
 }
+
+
+// adb push /home/shoni/Documents/openmanip/non_blocking_teleop/src/open_manipulator_teleop_keyboard.cpp /root/catkin_ws/src/non_blocking_teleop/src/.
